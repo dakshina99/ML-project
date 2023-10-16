@@ -281,33 +281,53 @@ def tune_hyper_params(svm_grid_params, knn_grid_params, rf_grid_params, pca_trai
 # Select the model that best predicts the valid and test datasets based on accuracy, precision and recall and train
 
 # %%
-def train_model(pca_train_features_label1, train_label1, pca_valid_features_label1, valid_label1, svm=None, rf=None, knn=None):
+def train_model(pca_train_features_label1, train_label1, pca_valid_features_label1, valid_label1, pca_test_features_label1, svm=None, rf=None, knn=None):
     classification_models = [
         # ('K Neighbors', knn),
         # ('Random Forest', rf),
         ('SVM', svm)
         
     ]
-    
-    models = []
 
+    test_results = []
+    
     for model_name, model in classification_models:
-        num_features = pca_train_features_label1.shape[1]
-        print(f"{model_name} is training for {num_features} number of features\n")
-        
-        models.append(model)
-        kf = KFold(n_splits=3, random_state=42, shuffle=True)
-        cross_val_scores = cross_val_score(model, pca_train_features_label1, train_label1, cv=kf, verbose=4)
+        # Train the model on the training data
+        model.fit(pca_train_features_label1, train_label1)
 
-        print("CV Accuracy: %0.4f accuracy with a standard deviation of %0.2f" % (cross_val_scores.mean(), cross_val_scores.std()))
+        # Predict on the train data
+        y_pred_train_label1 = model.predict(pca_train_features_label1)
+
+        # Calculate metrics for classification evaluation
+        accuracy = accuracy_score(train_label1, y_pred_train_label1)
+        precision = precision_score(train_label1, y_pred_train_label1, average='macro', zero_division=1)
+        recall = recall_score(train_label1, y_pred_train_label1, average='macro')
+
+        print(f"Metrics for {model_name} on train data:")
+        print(f"Accuracy: {accuracy:.2f}")
+        print(f"Precision: {precision:.2f}")
+        print(f"Recall: {recall:.2f}")
         print("\n")
-    
-    return models
 
-# %%
-def get_test_result(pca_train_features_label1, train_label1, pca_test_features_label1, model): 
-    model.fit(pca_train_features_label1, train_label1)
-    return model.predict(pca_test_features_label1)
+        # Predict on the validation data
+        y_pred_valid_label1 = model.predict(pca_valid_features_label1)
+
+        # Calculate metrics for classification evaluation on validation data
+        accuracy = accuracy_score(valid_label1, y_pred_valid_label1)
+        precision = precision_score(valid_label1, y_pred_valid_label1, average='macro', zero_division=1)
+        recall = recall_score(valid_label1, y_pred_valid_label1, average='macro')
+
+        print(f"Metrics for {model_name} on validation data:")
+        print(f"Accuracy: {accuracy:.2f}")
+        print(f"Precision: {precision:.2f}")
+        print(f"Recall: {recall:.2f}")
+        print("\n")
+
+        # Predict on the test data
+        y_pred_test_label1 = model.predict(pca_test_features_label1)
+        test_results.append(y_pred_test_label1)
+    
+    return test_results
 
 # %%
 def create_csv(ID, pred_label1, destination):
@@ -338,10 +358,7 @@ pca_train_features_label1, pca_valid_features_label1, pca_test_features_label1 =
 # tune_hyper_params(svm_grid_params, knn_grid_params, random_forest_grid_params, pca_train_features_label1, train_label1, rand=True)
 
 # %%
-model1 = train_model(standardized_train_features_label1, train_label1, standardized_valid_features_label1, valid_label1, SVC(kernel="rbf", C=100, gamma=0.001))
-
-# %%
-y_pred_test_label1 = get_test_result(standardized_train_features_label1, train_label1, standardized_test_features_label1, model1[0])
+y_pred_test_label1 = train_model(pca_train_features_label1, train_label1, pca_valid_features_label1, valid_label1, pca_test_features_label1, SVC(kernel="rbf", C=100, gamma=0.001))[0]
 
 # %%
 destination = 'D:\\ACADEMIC\\SEMESTER 07\\ML - 3\\project\\Layer07\\results\\01.csv'
@@ -368,10 +385,7 @@ pca_train_features_label2, pca_valid_features_label2, pca_test_features_label2 =
 # tune_hyper_params(svm_grid_params, knn_grid_params, random_forest_grid_params, pca_train_features_label2, train_label2, rand=True)
 
 # %%
-model2 = train_model(standardized_train_features_label2, train_label2, standardized_valid_features_label2, valid_label2, SVC(kernel='rbf', C=100, gamma=0.001, class_weight='balanced'))
-
-# %%
-y_pred_test_label2 = get_test_result(standardized_train_features_label2, train_label2, standardized_test_features_label2, model2[0])
+y_pred_test_label2 = train_model(pca_train_features_label2, train_label2, pca_valid_features_label2, valid_label2, pca_test_features_label2, SVC(kernel="rbf", C=100, gamma=0.001))[0]
 
 # %%
 destination = 'D:\\ACADEMIC\\SEMESTER 07\\ML - 3\\project\\Layer07\\results\\02.csv'
@@ -398,10 +412,7 @@ pca_train_features_label3, pca_valid_features_label3, pca_test_features_label3 =
 # tune_hyper_params(svm_grid_params, knn_grid_params, random_forest_grid_params, pca_train_features_label3, train_label3, rand=True)
 
 # %%
-model3 = train_model(standardized_train_features_label3, train_label3, standardized_valid_features_label3, valid_label3, SVC(kernel='rbf', C=1000, gamma=0.001, class_weight='balanced'))
-
-# %%
-y_pred_test_label3 = get_test_result(standardized_train_features_label3, train_label3, standardized_test_features_label3, model3[0])
+y_pred_test_label3 = train_model(pca_train_features_label3, train_label3, pca_valid_features_label3, valid_label3, pca_test_features_label3, SVC(kernel="rbf", C=100, gamma=0.001))[0]
 
 # %%
 destination = 'D:\\ACADEMIC\\SEMESTER 07\\ML - 3\\project\\Layer07\\results\\03.csv'
@@ -428,10 +439,7 @@ svm_grid_params, knn_grid_params, random_forest_grid_params = get_hyper_params()
 tune_hyper_params(svm_grid_params, knn_grid_params, random_forest_grid_params, pca_train_features_label4, train_label4, rand=True)
 
 # %%
-model4 = train_model(standardized_train_features_label4, train_label4, standardized_valid_features_label4, valid_label4, SVC(kernel='rbf', C=100, gamma=0.001, class_weight='balanced'))
-
-# %%
-y_pred_test_label4 = get_test_result(standardized_train_features_label4, train_label4, standardized_test_features_label4, model4[0])
+y_pred_test_label4 = train_model(pca_train_features_label4, train_label4, pca_valid_features_label4, valid_label4, pca_test_features_label4, SVC(kernel="rbf", C=100, gamma=0.001))[0]
 
 # %%
 destination = 'D:\\ACADEMIC\\SEMESTER 07\\ML - 3\\project\\Layer07\\results\\04.csv'
